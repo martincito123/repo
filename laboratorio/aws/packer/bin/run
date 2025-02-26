@@ -1,0 +1,21 @@
+#!/bin/bash
+
+provider='aws'
+hcl_file="${provider}.pkr.hcl"
+
+docker run --rm -it \
+-v $(pwd)/$provider/packer/test:/home/src \
+-e "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" \
+-e "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" \
+-e "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" \
+--entrypoint /bin/ash \
+hxhroniegss/packer:1.10.0-alp3.17amd64 -c "packer init ${hcl_file} && packer build ${hcl_file}" | tee packer-build-output.log
+# Retrieve the Name of the created AMI from Packer's Log File
+# to be referenced and used by Terraform
+INSTANCE_AMI_NAME=$(cat packer-build-output.log | grep 'Creating AMI' | awk '{print $5}')
+export INSTANCE_AMI_NAME="${INSTANCE_AMI_NAME%%[[:cntrl:]]}"
+echo "EC2 AMI NAME = $INSTANCE_AMI_NAME"
+
+$provider/terraform/bin/init
+$provider/terraform/bin/plan
+$provider/terraform/bin/apply

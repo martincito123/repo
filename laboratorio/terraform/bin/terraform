@@ -1,0 +1,29 @@
+#!/bin/bash
+
+containerName="terraform_devops"
+
+if [ "$(docker inspect -f '{{.State.Running}}' ${containerName} 2>/dev/null)" = "true" ];
+then
+ echo "Stopping ${containerName} container..."
+ docker stop $containerName
+ echo "Deleting ${containerName} container..."
+ docker rm $containerName
+fi
+
+cmd="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+
+echo "
+= = = = = = = = = = = = = = = = = = = = = = = = = =
+     Running terraform ${cmd} ...
+= = = = = = = = = = = = = = = = = = = = = = = = = =
+"
+
+docker run --name $containerName --rm -it -u $(id -u):$(id -g) \
+ -v ~/.ssh:/home/.ssh \
+ -v $(pwd):/home/terraform \
+ -e "TF_VAR_region=$AWS_DEFAULT_REGION" \
+ -e "TF_VAR_access_key=$AWS_ACCESS_KEY_ID" \
+ -e "TF_VAR_secret_key=$AWS_SECRET_ACCESS_KEY" \
+ -e "TF_VAR_instance_ami_name=$INSTANCE_AMI_NAME" \
+ -w /home/terraform/test \
+ hxhroniegss/terraform:1.5.4-alp3.17.4amd64 $cmd

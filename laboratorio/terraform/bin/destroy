@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd `dirname $0`/../
+INSTANCE_AMI_NAME=$(cat ../../packer-build-output.log | grep 'Creating AMI' | awk '{print $5}')
+export INSTANCE_AMI_NAME="${INSTANCE_AMI_NAME%%[[:cntrl:]]}"
+source bin/terraform
